@@ -30,12 +30,18 @@ class SctpClient
         {
     
         }
-
+        ~SctpClient()
+        {
+            close(sockFd_);
+        }
+        //启动客户端
         void start(void)
         {
             makeSocket();
         }
+
     private:
+
         void makeSocket(void)
         {
             sockFd_ = socket(AF_INET,SOCK_SEQPACKET,IPPROTO_SCTP);
@@ -52,11 +58,6 @@ class SctpClient
             {
                 sctpstr_cli(stdin,sockFd_,(struct sockaddr *)&serverAddr_,sizeof(serverAddr_));
             }
-            /*else
-            {
-                sctpstr_cli_echoall(stdin,sockFd_,(SA *)&serverAddr_,sizeof(serverAddr_));
-            }*/
-            close(sockFd_);
         }
 
         int sockFd_;
@@ -65,6 +66,7 @@ class SctpClient
         int echoToAll_;
 };
 
+//循环发送并接受消息
 void sctpstr_cli(FILE *fp,int sock_fd,struct sockaddr *to,socklen_t tolen)
 {
     struct sockaddr_in peeraddr;
@@ -88,7 +90,6 @@ void sctpstr_cli(FILE *fp,int sock_fd,struct sockaddr *to,socklen_t tolen)
 
         //发送消息
         int count = sctp_sendmsg(sock_fd,sendline,out_sz,to,tolen,0,0,sri.sinfo_stream,0,0);
-        printf("count = %d\n",count);
         len = sizeof(peeraddr);
         rd_sz = sctp_recvmsg(sock_fd,recvline,sizeof(recvline),
                              (struct sockaddr *)&peeraddr,&len,&sri,&msg_flags);
