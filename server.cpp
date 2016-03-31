@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdio.h>
+#include <arpa/inet.h>
 
 SctpServer::SctpServer()
     :streamIncrement_(1)
@@ -19,14 +21,15 @@ SctpServer::SctpServer()
 void SctpServer::listenSocket(void)
 {
     //创建SCTP套接字
-    sockFd_ = socket(AF_INET,SOCK_SEQPACKET,IPPPOTO_SCTP);
+    sockFd_ = socket(AF_INET,SOCK_SEQPACKET,IPPROTO_SCTP);
     bzero(&serverAddr_,sizeof(serverAddr_));
     serverAddr_.sin_family = AF_INET;
     serverAddr_.sin_addr.s_addr = htonl(INADDR_ANY);
     serverAddr_.sin_port = htons(SERVER_PORT);
-    
+    inet_pton(AF_INET,"127.0.0.1",&serverAddr_.sin_addr);   
+
     //地址绑定
-    bind(sockFd_,(SA *)&serverAddr_,sizeof(serverAddr_));
+    bind(sockFd_,(struct sockaddr *)&serverAddr_,sizeof(serverAddr_));
 
     //设置SCTP通知事件(此处只设置了I/O通知事件)
     bzero(&events_,sizeof(events_));
@@ -35,6 +38,7 @@ void SctpServer::listenSocket(void)
     
     //开始监听
     listen(sockFd_,LISTEN_QUEUE);
+    printf("开始监听\n");
 }
 
 void SctpServer::loop(void)
@@ -43,20 +47,23 @@ void SctpServer::loop(void)
     {
         len_ = sizeof(struct sockaddr_in);
         //从socket读取内容
+        printf("等待读取数据\n");
         readSize_ = sctp_recvmsg(sockFd_,readBuf_,BUFFER_SIZE,
-                                 (SA *)&clientAddr_,&len_,&sri_,&msgFlags_);
+                                 (struct sockaddr *)&clientAddr_,&len_,&sri_,&messageFlags_);
+        printf("收到:%d\n",readSize_);
         //增长消息流号
         if(streamIncrement_)
         {
             sri_.sinfo_stream++;
-            if(sri_.sinfo_stream >= sctp_get_no_strms(sockFd_,(SA *)&clientAddr_,len_))
+            /*if(sri_.sinfo_stream >= sctp_get_no_strms(sockFd_,(struct sockaddr *)&clientAddr_,len_))
             {
                 sri_.sinfo_stream = 0;
-            }
+            }*/
         }
         sctp_sendmsg(sockFd_,readBuf_,readSize_,
-                     (SA *)&clientAddr_,len_,
+                     (struct sockaddr *)&clientAddr_,len_,
                       sri_.sinfo_ppid,sri_.sinfo_flags,sri_.sinfo_stream,0,0);
+        printf("发送消息成功\n");
     }
 }
 

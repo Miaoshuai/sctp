@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 
-#define SERVER_PORT 3333
+#define SERVER_PORT 6666
 #define BUFFER_SIZE 1024
 #define LISTEN_QUEUE 100
 
